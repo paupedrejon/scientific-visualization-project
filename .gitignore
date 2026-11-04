@@ -1,0 +1,21 @@
+# Local environments
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Internal backups and notes not needed on the remote
+outputs/backup_presentation_*/
+PROMPTS_FOR_AI.md
+PDF_EXPORT_NOTE.txt
