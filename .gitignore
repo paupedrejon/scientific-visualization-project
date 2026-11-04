@@ -15,6 +15,11 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Local backups
+# Local backups / previous-scope archives
 outputs/backup_presentation_*/
+outputs/archive_through_*/
 *.tmp
+
+# Presentation deliverables (keep local only)
+outputs/*.pptx
+outputs/*.pdf

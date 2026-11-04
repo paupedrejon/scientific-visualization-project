@@ -1,0 +1,10 @@
+variable,present_in_schema,n_non_missing,n_missing,missing_iso3
+electricity_generation_twh,True,27,0,
+renewables_electricity_share_pct,True,27,0,
+nuclear_electricity_share_pct,True,27,0,
+fossil_fuels_electricity_share_pct,True,27,0,
+low_carbon_electricity_share_pct,True,27,0,
+electricity_carbon_intensity_gco2eq_per_kwh,True,27,0,
+solar_electricity_share_pct,True,27,0,
+wind_electricity_share_pct,True,27,0,
+hydro_electricity_share_pct,True,27,0,

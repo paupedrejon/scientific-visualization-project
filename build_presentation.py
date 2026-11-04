@@ -135,10 +135,42 @@ def notes(slide, text: str):
     slide.notes_slide.notes_text_frame.text = text
 
 
+
+def load_ctx():
+    import json
+    import pandas as pd
+    stats = json.loads((OUT / "statistics_and_sources.json").read_text(encoding="utf8"))
+    yearly = pd.read_csv(OUT / "yearly_coverage_and_weighted_indicators.csv")
+    year = int(stats["year"])
+    y0 = yearly.loc[yearly["year"] == 2010].iloc[0]
+    y1 = yearly.loc[yearly["year"] == year].iloc[0]
+    return {
+        "year": year,
+        "n_rows": 27 * (year - 2010 + 1),
+        "re0": float(y0["eu_generation_weighted_renew"]),
+        "nu0": float(y0["eu_generation_weighted_nuclear"]),
+        "fo0": float(y0["eu_generation_weighted_fossil"]),
+        "re1": float(y1["eu_generation_weighted_renew"]),
+        "nu1": float(y1["eu_generation_weighted_nuclear"]),
+        "fo1": float(y1["eu_generation_weighted_fossil"]),
+        "int0": float(y0["eu_generation_weighted_intensity"]),
+        "int1": float(y1["eu_generation_weighted_intensity"]),
+        "rho_re": float(stats["renew"]["spearman_rho"]),
+        "p_re": float(stats["renew"]["p_value"]),
+        "rho_lc": float(stats["lowcarbon"]["spearman_rho"]),
+        "p_lc": float(stats["lowcarbon"]["p_value"]),
+        "k": int(stats["clustering"]["k"]),
+        "sil": float(stats["clustering"]["silhouette_score"]),
+        "pca": float(stats["clustering"]["pca_two_components_variance"]),
+    }
+
+
 def build():
     # Ensure presentation chart/diagram assets exist
     from make_presentation_assets import main as make_assets
     make_assets()
+    ctx = load_ctx()
+    year = ctx["year"]
 
     prs = Presentation()
     prs.slide_width = W
@@ -153,15 +185,15 @@ def build():
     add_text(s, Inches(0.6), Inches(0.7), Inches(12), Inches(0.9),
              "How green is Europe's electricity?", size=34, bold=True, color=NAVY)
     add_text(s, Inches(0.6), Inches(1.65), Inches(12), Inches(0.5),
-             "EU-27 generation mixes, lifecycle intensity, and the role of nuclear · 2010–2024",
+             f"EU-27 generation mixes, lifecycle intensity, and the role of nuclear · 2010–{year}",
              size=18, color=TEAL)
     add_text(s, Inches(0.6), Inches(2.3), Inches(12), Inches(0.4),
-             "Scientific Visualization  ·  replace with author names", size=14, color=MUTED)
+             "Scientific Visualization", size=14, color=MUTED)
 
     for i, (label, value) in enumerate([
         ("Dataset", "OWID Energy\n2026-09-10"),
-        ("Scope", "EU-27 · ISO3\n2010–2024"),
-        ("Sample", "405 country–years\n27/27 in 2024"),
+        ("Scope", f"EU-27 · ISO3\n2010–{year}"),
+        ("Sample", f"{ctx['n_rows']} country–years\n27/27 in {year}"),
         ("Unit", "gCO₂eq / kWh\nlifecycle"),
     ]):
         left = Inches(0.6 + i * 3.1)
@@ -204,7 +236,7 @@ def build():
     s = blank(prs)
     chrome(s, "How Europe's electricity mix changed")
     add_text(s, Inches(0.5), Inches(0.85), Inches(8.5), Inches(0.4),
-             "Renewables 22% → 48% · Fossil 49% → 29% · Nuclear 29% → 23% (generation-weighted)",
+             f"Renewables {ctx['re0']:.0f}% → {ctx['re1']:.0f}% · Fossil {ctx['fo0']:.0f}% → {ctx['fo1']:.0f}% · Nuclear {ctx['nu0']:.0f}% → {ctx['nu1']:.0f}% (generation-weighted)",
              size=13, bold=True, color=TEAL)
     picture(s, PRESENT / "01_mix_trend_annotated.png", Inches(0.35), Inches(1.25), width=Inches(9.0))
     callout(s, Inches(9.5), Inches(1.5), Inches(3.4), Inches(2.0),
@@ -221,24 +253,24 @@ def build():
     s = blank(prs)
     chrome(s, "Carbon intensity through time")
     add_text(s, Inches(0.5), Inches(0.85), Inches(8.8), Inches(0.4),
-             "Lifecycle intensity fell from 369 to 211 gCO₂eq/kWh (2010→2024), with a 2021–22 rebound",
+             f"Lifecycle intensity fell from {ctx['int0']:.0f} to {ctx['int1']:.0f} gCO₂eq/kWh (2010→{year}), with a 2021–22 rebound",
              size=13, bold=True, color=TEAL)
     picture(s, PRESENT / "02_carbon_intensity_annotated.png", Inches(0.35), Inches(1.25), width=Inches(9.0))
     callout(s, Inches(9.5), Inches(1.5), Inches(3.4), Inches(2.2),
             "Notice",
-            "≈43% lower intensity by 2024. The 2022 rebound (~292) is visible before the sharp drop.",
+            f"≈{100 * (1 - ctx['int1'] / ctx['int0']):.0f}% lower intensity by {year}. The 2022 rebound is visible before the later drop.",
             TEAL)
     callout(s, Inches(9.5), Inches(3.95), Inches(3.4), Inches(2.1),
             "Caveat",
             "Coverage here is 27/27 for this indicator set. Generation ≠ consumption (imports matter for demand).",
             BROWN)
-    notes(s, "Highlight 2020 trough, 2022 rebound, 2024 low. Units: lifecycle gCO2eq per kWh generated.")
+    notes(s, f"Highlight 2020 trough, 2022 rebound, {year} level. Units: lifecycle gCO2eq per kWh generated.")
 
     # ── 08 Ranking ────────────────────────────────────────────
     s = blank(prs)
-    chrome(s, "Leaders and laggards · 2024")
+    chrome(s, f"Leaders and laggards · {year}")
     add_text(s, Inches(0.5), Inches(0.85), Inches(8.5), Inches(0.35),
-             "Low-carbon share spans ~16% (Malta) to ~99% (Sweden) — all 27 countries shown",
+             f"Low-carbon share spans Malta (~16%) to Sweden (~99%) — all 27 countries shown ({year})",
              size=13, bold=True, color=TEAL)
     picture(s, PRESENT / "03_low_carbon_ranking_present.png",
             Inches(0.3), Inches(1.2), height=Inches(5.55))
@@ -278,7 +310,7 @@ def build():
     add_text(s, Inches(0.65), Inches(1.2), Inches(3.5), Inches(0.4),
              "Renewables only", size=18, bold=True, color=TEAL)
     add_text(s, Inches(0.65), Inches(1.75), Inches(3.5), Inches(1.2),
-             "Spearman ρ = −0.46\np = 0.015\nn = 27 countries (2024)",
+             f"Spearman ρ = {ctx['rho_re']:.2f}\np = {ctx['p_re']:.3g}\nn = 27 countries ({year})",
              size=16, bold=True, color=NAVY)
     add_multiline(s, Inches(0.65), Inches(3.2), Inches(3.5), Inches(3.0), [
         "What to notice",
@@ -298,11 +330,11 @@ def build():
     add_text(s, Inches(0.65), Inches(1.2), Inches(3.5), Inches(0.4),
              "Low-carbon = RE + nuclear", size=17, bold=True, color=TEAL)
     add_text(s, Inches(0.65), Inches(1.75), Inches(3.5), Inches(1.3),
-             "Spearman ρ = −0.93\np ≈ 4.9×10⁻¹²\nn = 27 countries (2024)",
+             f"Spearman ρ = {ctx['rho_lc']:.2f}\np = {ctx['p_lc']:.3g}\nn = 27 countries ({year})",
              size=16, bold=True, color=NAVY)
     add_multiline(s, Inches(0.65), Inches(3.2), Inches(3.5), Inches(3.0), [
         "Compare with previous slide",
-        "• |ρ| jumps from 0.46 → 0.93.",
+        f"• |ρ| jumps from {abs(ctx['rho_re']):.2f} → {abs(ctx['rho_lc']):.2f}.",
         "• Nuclear closes the France / Slovakia gap.",
         "• Still descriptive — not a causal claim.",
         "• Definition: low-carbon share of electricity generation.",
@@ -320,7 +352,7 @@ def build():
     s = blank(prs)
     chrome(s, "Country profiles · exploratory K-means + PCA")
     add_text(s, Inches(0.5), Inches(0.85), Inches(12), Inches(0.35),
-             "Best k = 4 among 2–5, but silhouette = 0.30 (weak) · PCA 2D explains ~67% variance",
+             f"Best k = {ctx['k']} among 2–5, but silhouette = {ctx['sil']:.2f} (weak) · PCA 2D explains ~{100 * ctx['pca']:.0f}% variance",
              size=13, bold=True, color=BROWN)
     picture(s, FIG / "07_country_clusters_pca.png",
             Inches(0.4), Inches(1.25), width=Inches(8.8))
@@ -339,11 +371,11 @@ def build():
     chrome(s, "Conclusions, limitations & sources", footer=SOURCE_URL)
     items = [
         (TEAL, "1", "EU mix transition",
-         "Generation-weighted renewables rose 22%→48%; fossil fell 49%→29%; intensity 369→211 gCO₂eq/kWh (2010–2024)."),
+         f"Generation-weighted renewables rose {ctx['re0']:.0f}%→{ctx['re1']:.0f}%; fossil fell {ctx['fo0']:.0f}%→{ctx['fo1']:.0f}%; intensity {ctx['int0']:.0f}→{ctx['int1']:.0f} gCO₂eq/kWh (2010–{year})."),
         (ACCENT, "2", "Divergent pathways",
          "Low-carbon leaders use different recipes: renewables-led, nuclear-led, or both."),
         (TEAL, "3", "Nuclear in the story",
-         "Renewables↔intensity ρ=−0.46; low-carbon↔intensity ρ=−0.93 (n=27). Descriptive, not causal."),
+         f"Renewables↔intensity ρ={ctx['rho_re']:.2f}; low-carbon↔intensity ρ={ctx['rho_lc']:.2f} (n=27). Descriptive, not causal."),
     ]
     for i, (color, num, title, body) in enumerate(items):
         top = Inches(1.0 + i * 1.35)
@@ -368,7 +400,7 @@ def build():
         "• Clustering silhouette 0.30 → weak",
         "",
         "Reproducibility",
-        "analysis.py --year 2024",
+        f"analysis.py --year {year}",
         "outputs/verified_findings.md",
     ], size=12, bold_first=True)
 
@@ -383,10 +415,12 @@ def build():
     OUT.mkdir(parents=True, exist_ok=True)
     prs.save(DECK)
     print(f"Wrote {DECK}")
-    write_backup_pdf()
+    write_backup_pdf(ctx)
 
 
-def write_backup_pdf():
+def write_backup_pdf(ctx=None):
+    ctx = ctx or load_ctx()
+    year = ctx["year"]
     from reportlab.lib.pagesizes import landscape
     from reportlab.lib.units import inch
     from reportlab.pdfgen import canvas
@@ -433,10 +467,10 @@ def write_backup_pdf():
     c.setFillColorRGB(0.10, 0.48, 0.43)
     c.setFont("Helvetica", 13)
     c.drawString(0.6 * inch, height - 1.75 * inch,
-                 "EU-27 generation mixes, lifecycle intensity, and the role of nuclear · 2010-2024")
+                 f"EU-27 generation mixes, lifecycle intensity, and the role of nuclear · 2010-{year}")
     text_block([
         "Scientific Visualization  |  OWID Energy dataset version 2026-09-10",
-        "Sample: 405 country-years (EU-27 x 2010-2024); 27/27 complete in 2024 for core electricity variables",
+        f"Sample: {ctx['n_rows']} country-years (EU-27 x 2010-{year}); 27/27 complete in {year} for core electricity variables",
         "Intensity unit: lifecycle gCO2eq / kWh generated  |  Electricity indicators mainly Ember via OWID",
         SOURCE_URL,
     ], 0.6 * inch, height - 3.6 * inch, size=11, leading=18)
@@ -458,7 +492,7 @@ def write_backup_pdf():
     c.setFillColorRGB(0.10, 0.48, 0.43)
     c.setFont("Helvetica-Bold", 11)
     c.drawString(0.5 * inch, height - 0.85 * inch,
-                 "Renewables 22% -> 48%  |  Fossil 49% -> 29%  |  Nuclear 29% -> 23% (generation-weighted)")
+                 f"Renewables {ctx['re0']:.0f}% -> {ctx['re1']:.0f}%  |  Fossil {ctx['fo0']:.0f}% -> {ctx['fo1']:.0f}%  |  Nuclear {ctx['nu0']:.0f}% -> {ctx['nu1']:.0f}% (generation-weighted)")
     draw_img(PRESENT / "01_mix_trend_annotated.png", 0.35 * inch, 0.7 * inch, 9.0 * inch, 5.5 * inch)
     c.setFillColorRGB(0.95, 0.97, 0.98)
     c.roundRect(9.6 * inch, 3.6 * inch, 3.3 * inch, 2.3 * inch, 8, fill=1, stroke=0)
@@ -477,13 +511,13 @@ def write_backup_pdf():
     c.setFont("Helvetica-Bold", 11)
     c.setFillColorRGB(0.10, 0.48, 0.43)
     c.drawString(0.5 * inch, height - 0.85 * inch,
-                 "Lifecycle intensity 369 -> 211 gCO2eq/kWh (2010->2024), with 2021-22 rebound")
+                 f"Lifecycle intensity {ctx['int0']:.0f} -> {ctx['int1']:.0f} gCO2eq/kWh (2010->{year}), with 2021-22 rebound")
     draw_img(PRESENT / "02_carbon_intensity_annotated.png", 0.35 * inch, 0.7 * inch, 9.0 * inch, 5.5 * inch)
     c.setFillColorRGB(0.95, 0.97, 0.98)
     c.roundRect(9.6 * inch, 3.4 * inch, 3.3 * inch, 2.5 * inch, 8, fill=1, stroke=0)
     text_block([
         "Notice",
-        "~43% lower by 2024.",
+        f"~{100 * (1 - ctx['int1'] / ctx['int0']):.0f}% lower by {year}.",
         "2022 rebound ~292.",
         "",
         "Caveat: generation",
@@ -492,7 +526,7 @@ def write_backup_pdf():
     c.showPage()
 
     # 8 ranking
-    band("Leaders and laggards · 2024")
+    band(f"Leaders and laggards · {year}")
     draw_img(PRESENT / "03_low_carbon_ranking_present.png", 0.3 * inch, 0.55 * inch, 8.5 * inch, 6.2 * inch)
     c.setFillColorRGB(0.95, 0.97, 0.98)
     c.roundRect(9.1 * inch, 3.2 * inch, 3.7 * inch, 3.0 * inch, 8, fill=1, stroke=0)
@@ -530,9 +564,9 @@ def write_backup_pdf():
     text_block([
         "Renewables only",
         "",
-        "Spearman rho = -0.46",
-        "p = 0.015",
-        "n = 27 (2024)",
+        f"Spearman rho = {ctx['rho_re']:.2f}",
+        f"p = {ctx['p_re']:.3g}",
+        f"n = 27 ({year})",
         "",
         "Moderate association.",
         "France: low RE share,",
@@ -551,11 +585,11 @@ def write_backup_pdf():
     text_block([
         "Low-carbon = RE + nuclear",
         "",
-        "Spearman rho = -0.93",
-        "p ~ 4.9e-12",
-        "n = 27 (2024)",
+        f"Spearman rho = {ctx['rho_lc']:.2f}",
+        f"p = {ctx['p_lc']:.3g}",
+        f"n = 27 ({year})",
         "",
-        "|rho| jumps 0.46 -> 0.93.",
+        f"|rho| jumps {abs(ctx['rho_re']):.2f} -> {abs(ctx['rho_lc']):.2f}.",
         "Nuclear closes the gap",
         "for FR / SK pathways.",
         "",
@@ -571,7 +605,7 @@ def write_backup_pdf():
     c.setFillColorRGB(0.72, 0.44, 0.31)
     c.setFont("Helvetica-Bold", 11)
     c.drawString(0.5 * inch, height - 0.85 * inch,
-                 "Best k=4 but silhouette=0.30 (WEAK)  |  PCA 2D ~67% variance  |  exploratory only")
+                 f"Best k={ctx['k']} but silhouette={ctx['sil']:.2f} (WEAK)  |  PCA 2D ~{100*ctx['pca']:.0f}% variance  |  exploratory only")
     draw_img(FIG / "07_country_clusters_pca.png", 0.4 * inch, 0.65 * inch, 8.8 * inch, 5.7 * inch)
     c.setFillColorRGB(0.95, 0.97, 0.98)
     c.roundRect(9.4 * inch, 3.2 * inch, 3.5 * inch, 3.0 * inch, 8, fill=1, stroke=0)
@@ -588,16 +622,16 @@ def write_backup_pdf():
     # 13 conclusions
     band("Conclusions, limitations & sources")
     text_block([
-        "1. EU mix transition: RE 22->48%, fossil 49->29%, intensity 369->211 gCO2eq/kWh (2010-2024).",
+        f"1. EU mix transition: RE {ctx['re0']:.0f}->{ctx['re1']:.0f}%, fossil {ctx['fo0']:.0f}->{ctx['fo1']:.0f}%, intensity {ctx['int0']:.0f}->{ctx['int1']:.0f} gCO2eq/kWh (2010-{year}).",
         "2. Divergent pathways: renewables-led, nuclear-led, or both among low-carbon leaders.",
-        "3. Nuclear in the story: rho -0.46 (RE) vs -0.93 (low-carbon); descriptive, not causal.",
+        f"3. Nuclear in the story: rho {ctx['rho_re']:.2f} (RE) vs {ctx['rho_lc']:.2f} (low-carbon); descriptive, not causal.",
         "",
         "Limitations: no causality; generation != consumption/imports; lifecycle != stack-only CO2;",
         "clustering silhouette 0.30 = weak separation.",
         "",
         "Source: Our World in Data Energy version 2026-09-10 (electricity mainly Ember).",
         SOURCE_URL,
-        "Reproducibility: python analysis.py --year 2024  |  outputs/verified_findings.md",
+        f"Reproducibility: python analysis.py --year {year}  |  outputs/verified_findings.md",
         "Full EU-27 charts retained in outputs/figures/; presentation variants in figures/present/.",
     ], 0.55 * inch, height - 1.2 * inch, size=11, leading=18)
     c.showPage()

@@ -2,7 +2,7 @@
 
 Data: Our World in Data Energy dataset, version 2026-09-10.
 Source: https://catalog.ourworldindata.org/energy/owid_energy/
-Usage: python analysis.py --year 2024
+Usage: python analysis.py --year 2025
 
 Statistics and figures are computed from the downloaded CSV. Missing required
 columns raise an error instead of being filled in.
@@ -140,7 +140,7 @@ def generate(df: pd.DataFrame, year: int) -> None:
             transform=ax.transAxes, fontsize=9, color='#56606b')
     save_chart(fig, '02_carbon_intensity_trend.png')
 
-    # Figure 3 - all-country 2024 rank; no hidden rows.
+    # Figure 3 - all-country rank for the selected year; no hidden rows.
     d = year_data.dropna(subset=[C['lowcarbon']]).sort_values(C['lowcarbon'])
     fig, ax = plt.subplots(figsize=(11, 10))
     ax.barh(d['country'], d[C['lowcarbon']], color=COLORS['renew'], height=.73)
@@ -238,7 +238,7 @@ def generate(df: pd.DataFrame, year: int) -> None:
         'All charts derive exclusively from the OWID Energy 2026-09-10 extract.',
         '2010–selected year trends are generation-weighted from available country-year records.',
         'Lifecycle carbon intensity includes CO2-equivalent greenhouse gases.',
-        '2024 cross-sectional correlations are descriptive and do not demonstrate causality.',
+        f'{year} cross-sectional correlations are descriptive and do not demonstrate causality.',
         'K-means on portfolios is exploratory; interpret small samples and silhouette cautiously.'
     ]
     (OUT/'statistics_and_sources.json').write_text(json.dumps(stats,indent=2,ensure_ascii=False),encoding='utf8')
@@ -252,8 +252,8 @@ def generate(df: pd.DataFrame, year: int) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--year', type=int, default=2024,
-                        help='Cross-section year (default 2024 to avoid partial 2025 coverage)')
+    parser.add_argument('--year', type=int, default=2025,
+                        help='Cross-section year (default 2025; EU-27 coverage confirmed complete)')
     args = parser.parse_args()
     OUT.mkdir(parents=True,exist_ok=True)
     FIG.mkdir(parents=True,exist_ok=True)

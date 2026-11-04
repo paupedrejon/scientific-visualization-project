@@ -1,10 +1,12 @@
-"""Create presentation-only visual assets. Does not alter verified statistics.
+"""Create presentation-only visual assets from current verified outputs.
 
 Full EU-27 charts remain in outputs/figures/. Presentation variants go to
-outputs/figures/present/ for projected readability.
+outputs/figures/present/. Numbers are read from statistics_and_sources.json
+and the yearly / country CSVs — no invented values.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -16,7 +18,6 @@ BASE = Path(__file__).resolve().parent
 OUT = BASE / "outputs"
 FIG = OUT / "figures"
 PRESENT = FIG / "present"
-PROFILES = OUT / "country_profiles_2024.csv"
 
 COLORS = {
     "renew": "#16a085",
@@ -31,8 +32,18 @@ COLORS = {
     "accent": "#3d6b9a",
 }
 
-# Storytelling spotlight countries (still based on full 2024 verified data)
 SPOTLIGHT = ["SWE", "FRA", "DNK", "DEU", "ESP", "ITA", "POL", "AUT", "MLT"]
+
+
+def load_context():
+    stats = json.loads((OUT / "statistics_and_sources.json").read_text(encoding="utf8"))
+    year = int(stats["year"])
+    profiles = pd.read_csv(OUT / f"country_profiles_{year}.csv")
+    yearly = pd.read_csv(OUT / "yearly_coverage_and_weighted_indicators.csv")
+    n_rows = int(yearly["country_count"].sum()) if "country_count" in yearly else 27 * (year - 2010 + 1)
+    # Prefer exact retained count from filter: years 2010..year inclusive
+    n_rows = 27 * (year - 2010 + 1)
+    return stats, year, profiles, yearly, n_rows
 
 
 def setup():
@@ -57,7 +68,7 @@ def save(fig, name: str):
     plt.close(fig)
 
 
-def diagram_research_questions():
+def diagram_research_questions(year: int):
     fig, ax = plt.subplots(figsize=(12.5, 5.8))
     ax.set_xlim(0, 12.5)
     ax.set_ylim(0, 6)
@@ -66,7 +77,7 @@ def diagram_research_questions():
                  color=COLORS["navy"], pad=12)
 
     boxes = [
-        (0.3, 2.8, "Q1  Time", "How did the EU-27\nelectricity mix change\nfrom 2010 to 2024?", COLORS["teal"]),
+        (0.3, 2.8, "Q1  Time", f"How did the EU-27\nelectricity mix change\nfrom 2010 to {year}?", COLORS["teal"]),
         (4.4, 2.8, "Q2  Pathways", "Which countries lead\nor lag — and via which\ngeneration portfolios?", COLORS["accent"]),
         (8.5, 2.8, "Q3  Intensity", "Do renewables alone\ntrack lifecycle intensity,\nor does nuclear matter?", COLORS["intensity"]),
     ]
@@ -86,7 +97,7 @@ def diagram_research_questions():
     save(fig, "d02_research_questions.png")
 
 
-def diagram_provenance():
+def diagram_provenance(year: int, n_rows: int):
     fig, ax = plt.subplots(figsize=(12.5, 5.8))
     ax.set_xlim(0, 12.5)
     ax.set_ylim(0, 6)
@@ -96,7 +107,7 @@ def diagram_provenance():
     nodes = [
         (0.4, 3.2, 2.8, 1.8, "Ember\n(+ Energy Institute\nfor related series)", "#e8f0fa"),
         (4.0, 3.2, 2.8, 1.8, "Our World in Data\nEnergy dataset\nversion 2026-09-10", "#e7f5f2"),
-        (7.6, 3.2, 4.4, 1.8, "This project\nEU-27 ISO3 · 2010–2024\n405 country–year rows", "#f7efe8"),
+        (7.6, 3.2, 4.4, 1.8, f"This project\nEU-27 ISO3 · 2010–{year}\n{n_rows} country–year rows", "#f7efe8"),
     ]
     for x, y, w, h, text, face in nodes:
         ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.03,rounding_size=0.12",
@@ -147,7 +158,7 @@ def diagram_variables():
     save(fig, "d04_variables.png")
 
 
-def diagram_pipeline():
+def diagram_pipeline(year: int, n_rows: int):
     fig, ax = plt.subplots(figsize=(12.5, 5.8))
     ax.set_xlim(0, 12.5)
     ax.set_ylim(0, 6)
@@ -158,8 +169,8 @@ def diagram_pipeline():
     steps = [
         (0.25, "OWID CSV\n2026-09-10", "19 494 rows"),
         (2.55, "Filter\nEU-27 ISO3", "27 countries"),
-        (4.85, "Years\n2010–2024", "405 rows"),
-        (7.15, "Missingness\naudit", "0 missing\nin 2024 core"),
+        (4.85, f"Years\n2010–{year}", f"{n_rows} rows"),
+        (7.15, "Missingness\naudit", f"0 missing\nin {year} core"),
         (9.55, "Analyse &\nvisualise", "weighted trends\nSpearman · K-means"),
     ]
     for i, (x, title, sub) in enumerate(steps):
@@ -184,37 +195,38 @@ def diagram_pipeline():
     save(fig, "d05_pipeline.png")
 
 
-def chart_ranking_present(df: pd.DataFrame):
-    """Full EU-27 ranking with larger type and spotlight emphasis."""
+def chart_ranking_present(df: pd.DataFrame, year: int):
     d = df.dropna(subset=["low_carbon_electricity_share_pct"]).sort_values(
         "low_carbon_electricity_share_pct")
+    ranked = d.sort_values("low_carbon_electricity_share_pct", ascending=False)
+    leaders = set(ranked.head(5)["iso_code"])
+    laggards = set(ranked.tail(5)["iso_code"])
     fig, ax = plt.subplots(figsize=(11.2, 7.0))
     colors = []
     for _, row in d.iterrows():
-        if row["iso_code"] in {"SWE", "FIN", "FRA", "DNK", "AUT"}:
+        if row["iso_code"] in leaders:
             colors.append(COLORS["lowcarbon"])
-        elif row["iso_code"] in {"POL", "CYP", "MLT", "IRL", "GRC"}:
+        elif row["iso_code"] in laggards:
             colors.append(COLORS["fossil"])
         else:
             colors.append("#9db5b0")
     ax.barh(d["country"], d["low_carbon_electricity_share_pct"], color=colors, height=0.72)
     ax.set_xlim(0, 108)
     ax.set_xlabel("Low-carbon electricity share (%)  ·  renewables + nuclear", fontsize=12)
-    ax.set_title("Low-carbon electricity share by EU country · 2024", color=COLORS["navy"])
+    ax.set_title(f"Low-carbon electricity share by EU country · {year}", color=COLORS["navy"])
     ax.tick_params(axis="y", labelsize=10)
     for i, (_, row) in enumerate(d.iterrows()):
         val = row["low_carbon_electricity_share_pct"]
-        weight = "bold" if row["iso_code"] in SPOTLIGHT else "normal"
+        weight = "bold" if row["iso_code"] in (leaders | laggards | set(SPOTLIGHT)) else "normal"
         ax.text(min(val + 1.2, 100), i, f"{val:.0f}%", va="center", fontsize=9, fontweight=weight,
                 color=COLORS["navy"])
     ax.text(0, -0.14,
-            "Highlighted: leaders (teal) and fossil-heavy systems (brown). Full series for all 27 countries.",
+            "Highlighted: top 5 (teal) and bottom 5 (brown) by low-carbon share. Full series for all 27 countries.",
             transform=ax.transAxes, fontsize=9, color=COLORS["muted"])
     save(fig, "03_low_carbon_ranking_present.png")
 
 
-def chart_mix_spotlight(df: pd.DataFrame):
-    """Representative pathways for projection; full mix chart kept in figures/."""
+def chart_mix_spotlight(df: pd.DataFrame, year: int):
     order = ["SWE", "FRA", "DNK", "AUT", "ESP", "DEU", "ITA", "POL", "MLT"]
     labels = {
         "SWE": "Sweden · RE+nuclear",
@@ -250,7 +262,7 @@ def chart_mix_spotlight(df: pd.DataFrame):
     ax.set_yticklabels([labels[i] for i in order], fontsize=12)
     ax.set_xlim(0, 101)
     ax.set_xlabel("Share of electricity generation (%)", fontsize=12)
-    ax.set_title("Three pathways in one view · selected EU countries · 2024", color=COLORS["navy"])
+    ax.set_title(f"Three pathways in one view · selected EU countries · {year}", color=COLORS["navy"])
     ax.legend(frameon=False, ncol=4, loc="lower center", bbox_to_anchor=(0.5, -0.16), fontsize=11)
     ax.text(0, -0.22,
             "Presentation spotlight (9 of 27). Complete EU-27 stacked mix: figures/06_electricity_mix_by_country.png",
@@ -258,27 +270,30 @@ def chart_mix_spotlight(df: pd.DataFrame):
     save(fig, "06_electricity_mix_spotlight.png")
 
 
-def chart_compare_story(df: pd.DataFrame):
-    """Side-by-side storytelling graphic for slides 10–11 (same Spearman stats)."""
+def chart_compare_story(df: pd.DataFrame, stats: dict, year: int):
     paired = df.dropna(subset=[
         "renewables_electricity_share_pct",
         "low_carbon_electricity_share_pct",
         "electricity_carbon_intensity_gco2eq_per_kwh",
     ]).copy()
+    r_re = stats["renew"]["spearman_rho"]
+    p_re = stats["renew"]["p_value"]
+    r_lc = stats["lowcarbon"]["spearman_rho"]
+    p_lc = stats["lowcarbon"]["p_value"]
 
     fig, axes = plt.subplots(1, 2, figsize=(13.2, 5.8), sharey=True)
     configs = [
         (axes[0], "renewables_electricity_share_pct", COLORS["renew"],
          "A. Renewables only",
-         "Spearman ρ = −0.46   ·   p = 0.015   ·   n = 27",
+         f"Spearman ρ = {r_re:.2f}   ·   p = {p_re:.3g}   ·   n = {stats['renew']['n']}",
          "Moderate link — France sits low on renewables\nbut has very low intensity."),
         (axes[1], "low_carbon_electricity_share_pct", COLORS["lowcarbon"],
          "B. Low-carbon (renewables + nuclear)",
-         "Spearman ρ = −0.93   ·   p ≈ 4.9×10⁻¹²   ·   n = 27",
+         f"Spearman ρ = {r_lc:.2f}   ·   p = {p_lc:.3g}   ·   n = {stats['lowcarbon']['n']}",
          "Much tighter link — nuclear closes the gap\nfor countries like France & Slovakia."),
     ]
     annotate = {"FRA", "DEU", "ITA", "ESP", "SWE", "POL", "DNK", "CZE", "MLT"}
-    for ax, col, color, title, stats, note in configs:
+    for ax, col, color, title, box, note in configs:
         ax.scatter(paired[col], paired["electricity_carbon_intensity_gco2eq_per_kwh"],
                    s=70, c=color, alpha=0.85, edgecolor="white", linewidth=0.8, zorder=3)
         for _, row in paired.iterrows():
@@ -290,14 +305,14 @@ def chart_compare_story(df: pd.DataFrame):
                             color=COLORS["navy"])
         ax.set_title(title, color=COLORS["navy"], fontsize=13)
         ax.set_xlabel(title.split(". ")[1] + " (%)", fontsize=11)
-        ax.text(0.03, 0.97, stats, transform=ax.transAxes, va="top", fontsize=10,
+        ax.text(0.03, 0.97, box, transform=ax.transAxes, va="top", fontsize=10,
                 color=COLORS["navy"],
                 bbox=dict(facecolor="white", edgecolor="#d5dee6", boxstyle="round,pad=0.35"))
         ax.text(0.03, 0.08, note, transform=ax.transAxes, fontsize=9.5, color=COLORS["muted"],
                 va="bottom")
         ax.set_xlim(-2, 105)
     axes[0].set_ylabel("Lifecycle intensity (gCO₂eq / kWh)", fontsize=11)
-    fig.suptitle("Same countries, same year — what changes when nuclear enters the share?",
+    fig.suptitle(f"Same countries, same year ({year}) — what changes when nuclear enters the share?",
                  fontsize=14, fontweight="bold", color=COLORS["navy"], y=1.02)
     fig.text(0.5, -0.02,
              "Cross-sectional association only · not causal. Verified stats from analysis.py · OWID Energy 2026-09-10.",
@@ -305,20 +320,21 @@ def chart_compare_story(df: pd.DataFrame):
     save(fig, "10_11_renewables_vs_lowcarbon_story.png")
 
 
-def chart_intensity_callouts():
-    """Small annotated strip reinforcing verified trend numbers."""
-    yearly = pd.read_csv(OUT / "yearly_coverage_and_weighted_indicators.csv")
-    line = yearly.loc[yearly["year"].between(2010, 2024)]
+def chart_intensity_callouts(yearly: pd.DataFrame, year: int):
+    line = yearly.loc[yearly["year"].between(2010, year)]
     fig, ax = plt.subplots(figsize=(11.5, 5.4))
     ax.plot(line["year"], line["eu_generation_weighted_intensity"],
             marker="o", linewidth=2.8, color=COLORS["intensity"])
     ax.set_title("EU-27 lifecycle carbon intensity of electricity", color=COLORS["navy"])
     ax.set_ylabel("gCO₂eq / kWh of generated electricity")
     ax.set_xlabel("Year")
-    # Verified callout points
-    for year, label in [(2010, "2010\n369"), (2020, "2020\n261"), (2022, "2022 rebound\n292"), (2024, "2024\n211")]:
-        val = float(line.loc[line["year"] == year, "eu_generation_weighted_intensity"].iloc[0])
-        ax.annotate(label, xy=(year, val), xytext=(0, 18 if year != 2022 else -36),
+    callouts = [2010, 2020, 2022, year]
+    for yr in callouts:
+        val = float(line.loc[line["year"] == yr, "eu_generation_weighted_intensity"].iloc[0])
+        tag = f"{yr}\n{val:.0f}"
+        if yr == 2022:
+            tag = f"{yr} rebound\n{val:.0f}"
+        ax.annotate(tag, xy=(yr, val), xytext=(0, 18 if yr != 2022 else -36),
                     textcoords="offset points", ha="center", fontsize=9,
                     color=COLORS["navy"],
                     arrowprops=dict(arrowstyle="-", color=COLORS["muted"], lw=0.8))
@@ -328,9 +344,8 @@ def chart_intensity_callouts():
     save(fig, "02_carbon_intensity_annotated.png")
 
 
-def chart_mix_trend_callouts():
-    yearly = pd.read_csv(OUT / "yearly_coverage_and_weighted_indicators.csv")
-    line = yearly.loc[yearly["year"].between(2010, 2024)]
+def chart_mix_trend_callouts(yearly: pd.DataFrame, year: int):
+    line = yearly.loc[yearly["year"].between(2010, year)]
     fig, ax = plt.subplots(figsize=(11.5, 5.5))
     series = [
         ("eu_generation_weighted_renew", "Renewable", COLORS["renew"]),
@@ -346,9 +361,15 @@ def chart_mix_trend_callouts():
     ax.legend(frameon=False, ncol=3, fontsize=11)
     ax.axvline(2020, color="#c5d0da", ls="--", lw=1)
     ax.text(2020.15, 92, "RE overtakes\nfossil ≈ 2020", fontsize=9, color=COLORS["muted"])
-    ax.text(2010.2, 8, "2010: fossil 49% · RE 22% · nuclear 29%", fontsize=10, color=COLORS["navy"],
+    y0 = line.loc[line["year"] == 2010].iloc[0]
+    y1 = line.loc[line["year"] == year].iloc[0]
+    ax.text(2010.2, 8,
+            f"2010: fossil {y0['eu_generation_weighted_fossil']:.0f}% · RE {y0['eu_generation_weighted_renew']:.0f}% · nuclear {y0['eu_generation_weighted_nuclear']:.0f}%",
+            fontsize=10, color=COLORS["navy"],
             bbox=dict(facecolor="white", edgecolor="#d5dee6", boxstyle="round,pad=0.3"))
-    ax.text(2018.2, 8, "2024: RE 48% · fossil 29% · nuclear 23%", fontsize=10, color=COLORS["navy"],
+    ax.text(2017.5, 8,
+            f"{year}: RE {y1['eu_generation_weighted_renew']:.0f}% · fossil {y1['eu_generation_weighted_fossil']:.0f}% · nuclear {y1['eu_generation_weighted_nuclear']:.0f}%",
+            fontsize=10, color=COLORS["navy"],
             bbox=dict(facecolor="white", edgecolor="#d5dee6", boxstyle="round,pad=0.3"))
     ax.text(0, -0.18,
             "Country shares weighted by national generation (TWh). Verified from yearly_coverage_and_weighted_indicators.csv",
@@ -358,17 +379,17 @@ def chart_mix_trend_callouts():
 
 def main():
     setup()
-    df = pd.read_csv(PROFILES)
-    diagram_research_questions()
-    diagram_provenance()
+    stats, year, df, yearly, n_rows = load_context()
+    diagram_research_questions(year)
+    diagram_provenance(year, n_rows)
     diagram_variables()
-    diagram_pipeline()
-    chart_mix_trend_callouts()
-    chart_intensity_callouts()
-    chart_ranking_present(df)
-    chart_mix_spotlight(df)
-    chart_compare_story(df)
-    print(f"Presentation assets written to {PRESENT}")
+    diagram_pipeline(year, n_rows)
+    chart_mix_trend_callouts(yearly, year)
+    chart_intensity_callouts(yearly, year)
+    chart_ranking_present(df, year)
+    chart_mix_spotlight(df, year)
+    chart_compare_story(df, stats, year)
+    print(f"Presentation assets written to {PRESENT} (year={year})")
 
 
 if __name__ == "__main__":

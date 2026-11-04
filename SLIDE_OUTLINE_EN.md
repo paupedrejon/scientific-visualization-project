@@ -2,7 +2,7 @@
 
 Empirical numbers on the slides should match `outputs/` (especially `statistics_and_sources.json` and `verified_findings.md`).
 
-01. **Cover** — How green is Europe's electricity? EU-27 (2010–2024). Names, course, source.
+01. **Cover** — How green is Europe's electricity? EU-27 (2010–2025). Names, course, source.
 02. **Research questions** — Change over time, country pathways, renewables vs low-carbon intensity.
 03. **Source and provenance** — OWID Energy 2026-09-10; Ember / Energy Institute attribution; country–year observations.
 04. **Variables and definitions** — Renewable, nuclear, low-carbon and fossil shares; lifecycle intensity (gCO₂eq/kWh); generation (TWh).

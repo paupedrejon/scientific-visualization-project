@@ -1,6 +1,6 @@
 # How green is Europe's electricity?
 
-Scientific Visualization project on the EU-27 electricity mix (2010–2024).
+Scientific Visualization project on the EU-27 electricity mix (2010–2025).
 
 We look at how generation has shifted toward renewables, how countries differ, and whether renewable share (and low-carbon share, including nuclear) lines up with lifecycle carbon intensity.
 
@@ -14,11 +14,13 @@ Pinned CSV: https://catalog.ourworldindata.org/garden/energy/2026-09-10/owid_ene
 
 ```bash
 pip install -r requirements.txt
-python analysis.py --year 2024
+python analysis.py --year 2025
 python build_presentation.py
 ```
 
 Charts and tables land in `outputs/`. Slides are in `outputs/EU27_Electricity_Transition.pptx` (PDF next to it).
+
+Before extending beyond 2024 we checked that all analysis variables are complete for EU-27 in 2025 (`outputs/missingness_2025_eu27_audit.csv`). No missing values were filled in.
 
 ## Notes
 
