@@ -1,0 +1,36 @@
+{
+  "renew": {
+    "n": 27,
+    "spearman_rho": -0.463980463980464,
+    "p_value": 0.014774948225323803
+  },
+  "lowcarbon": {
+    "n": 27,
+    "spearman_rho": -0.9255189255189256,
+    "p_value": 4.864170646506722e-12
+  },
+  "clustering": {
+    "k": 4,
+    "silhouette_score": 0.30317559177311193,
+    "candidate_silhouettes": {
+      "2": 0.28680750093034857,
+      "3": 0.28724054455672077,
+      "4": 0.30317559177311193,
+      "5": 0.2798656054310197
+    },
+    "n": 27,
+    "pca_two_components_variance": 0.6715963975817201
+  },
+  "source": "https://catalog.ourworldindata.org/garden/energy/2026-09-10/owid_energy/owid_energy.csv",
+  "dataset_version": "2026-09-10",
+  "year": 2024,
+  "eu_country_rows_selected": 27,
+  "assumptions": [
+    "EU27 only, filtered using ISO3 country codes; regional aggregates excluded.",
+    "All charts derive exclusively from OWID data; no fabricated measurements.",
+    "2010–selected year trends are generation-weighted from available country-year records.",
+    "Lifecycle carbon intensity includes CO2-equivalent greenhouse gases.",
+    "2024 cross-sectional correlations cannot demonstrate causality.",
+    "K-means on portfolios is exploratory; interpret small samples and silhouette cautiously."
+  ]
+}
