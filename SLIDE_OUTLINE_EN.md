@@ -1,19 +1,19 @@
-# Suggested 13-slide presentation (English)
+# 13-slide presentation outline (English)
 
-**All empirical findings and numeric claims must be filled using the ACTUAL outputs; NEVER invent statistics.**
+Empirical numbers on the slides should match `outputs/` (especially `statistics_and_sources.json` and `verified_findings.md`).
 
 01. **Cover** — How green is Europe's electricity? EU-27 (2010–2024). Names, course, source.
-02. **Research questions** — Three questions: change over time, different country pathways, what drives carbon intensity?
-03. **Source and provenance** — OWID 2026-09-10 snapshot; Ember / Energy Institute attribution, version URL, source-specific metadata; observation = country-year.
-04. **Variables and definitions** — Renewable share, nuclear share, low-carbon share, fossil share, lifecycle carbon intensity, electricity generation. Units and denominators.
-05. **Cleaning & methodology** — Filter ISO3 EU27, choose years, exclude missing per analysis, show total retained observations and completeness, generation weights.
-06. **How Europe's electricity mix changed** — Chart 01; write actual interpretation from data.
-07. **Carbon intensity through time** — Chart 02; describe trend and caveat of varying country coverage.
-08. **Leaders and laggards** — Chart 03 ranking; emphasize country differences without cherry-picking.
-09. **Three pathways to electricity generation** — Chart 06: renewable, nuclear, fossil generation composition.
-10. **Are renewables enough to explain carbon intensity?** — Chart 04, state actual Spearman ρ and n.
-11. **What changes when nuclear is included?** — Chart 05, compare actual ρ and n (do not assume the direction of results).
-12. **Country profiles: K-means + PCA** — Chart 07, state actual k, silhouette, explained PCA variance and whether patterns are strong/weak. If low silhouette, state that clustering found no strong groups.
-13. **Conclusions, limitations & sources** — 3 data-grounded conclusions, no causality, missing data, national electricity generation vs consumption, exact dataset link.
+02. **Research questions** — Change over time, country pathways, renewables vs low-carbon intensity.
+03. **Source and provenance** — OWID Energy 2026-09-10; Ember / Energy Institute attribution; country–year observations.
+04. **Variables and definitions** — Renewable, nuclear, low-carbon and fossil shares; lifecycle intensity (gCO₂eq/kWh); generation (TWh).
+05. **Cleaning & methodology** — EU-27 ISO3 filter, years, coverage, generation weights, Spearman, exploratory clustering.
+06. **How Europe's electricity mix changed** — Chart 01; interpret the verified trend.
+07. **Carbon intensity through time** — Chart 02; trend and coverage notes.
+08. **Leaders and laggards** — Chart 03 ranking; show the full range of countries.
+09. **Three pathways to electricity generation** — Chart 06 (or presentation spotlight); renewable-, nuclear- and fossil-led mixes.
+10. **Are renewables enough to explain carbon intensity?** — Chart 04; report Spearman ρ and *n*.
+11. **What changes when nuclear is included?** — Chart 05; compare ρ and *n* with the previous slide.
+12. **Country profiles: K-means + PCA** — Chart 07; report *k*, silhouette and PCA variance; state if separation is weak.
+13. **Conclusions, limitations & sources** — Three data-grounded conclusions; no causality; generation vs consumption; exact dataset URL.
 
-Layout: 1 main chart per slide, 1 headline expressing a truthful finding, no walls of text. Chart axes/legends/units must remain readable. Reserve last lines for data source and year.
+Layout: one main chart per content slide, short headline, readable axes/units, source line at the bottom.

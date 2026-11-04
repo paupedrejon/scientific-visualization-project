@@ -15,7 +15,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Internal backups and notes not needed on the remote
+# Local backups
 outputs/backup_presentation_*/
-PROMPTS_FOR_AI.md
-PDF_EXPORT_NOTE.txt
+*.tmp

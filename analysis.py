@@ -1,11 +1,11 @@
-"""Scientific Visualization project starter: EU-27 electricity transition.
+"""EU-27 electricity transition analysis (Scientific Visualization project).
 
-Real data only: Our World in Data energy dataset, frozen at 2026-09-10.
+Data: Our World in Data Energy dataset, version 2026-09-10.
 Source: https://catalog.ourworldindata.org/energy/owid_energy/
-Run: python analysis.py --year 2024
+Usage: python analysis.py --year 2024
 
-NOTE: No research results are hard-coded. All statistics and figures are calculated
-from the downloaded source dataset. If a source variable is missing, fail loudly.
+Statistics and figures are computed from the downloaded CSV. Missing required
+columns raise an error instead of being filled in.
 """
 from __future__ import annotations
 
@@ -105,7 +105,7 @@ def generate(df: pd.DataFrame, year: int) -> None:
     print('Missing per variable for chosen year:')
     print(year_data[list(C.values())[3:]].isna().sum().to_string())
 
-    # Transparent audit table - never silently impute or fabricate data.
+    # Coverage audit: missing values are excluded per indicator/year (no imputation).
     years = []
     for yr, sub in df.groupby('year'):
         record = {'year': int(yr), 'country_count': int(len(sub))}
@@ -235,10 +235,10 @@ def generate(df: pd.DataFrame, year: int) -> None:
     stats['eu_country_rows_selected'] = n_countries
     stats['assumptions'] = [
         'EU27 only, filtered using ISO3 country codes; regional aggregates excluded.',
-        'All charts derive exclusively from OWID data; no fabricated measurements.',
+        'All charts derive exclusively from the OWID Energy 2026-09-10 extract.',
         '2010–selected year trends are generation-weighted from available country-year records.',
         'Lifecycle carbon intensity includes CO2-equivalent greenhouse gases.',
-        '2024 cross-sectional correlations cannot demonstrate causality.',
+        '2024 cross-sectional correlations are descriptive and do not demonstrate causality.',
         'K-means on portfolios is exploratory; interpret small samples and silhouette cautiously.'
     ]
     (OUT/'statistics_and_sources.json').write_text(json.dumps(stats,indent=2,ensure_ascii=False),encoding='utf8')
