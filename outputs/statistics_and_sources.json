@@ -28,7 +28,7 @@
   "assumptions": [
     "EU27 only, filtered using ISO3 country codes; regional aggregates excluded.",
     "All charts derive exclusively from the OWID Energy 2026-09-10 extract.",
-    "2010 to selected-year trends are generation-weighted from available country-year records.",
+    "2010–selected year trends are generation-weighted from available country-year records.",
     "Lifecycle carbon intensity includes CO2-equivalent greenhouse gases.",
     "2025 cross-sectional correlations are descriptive and do not demonstrate causality.",
     "K-means on portfolios is exploratory; interpret small samples and silhouette cautiously."

@@ -74,8 +74,8 @@ def download_data() -> Path:
     return path
 
 
-def save_chart(fig, filename: str):
-    fig.savefig(FIG / filename, dpi=190, bbox_inches='tight', facecolor='white')
+def save_chart(fig, filename: str, dpi: int = 190):
+    fig.savefig(FIG / filename, dpi=dpi, bbox_inches='tight', facecolor='white')
     plt.close(fig)
 
 
@@ -150,30 +150,67 @@ def generate(df: pd.DataFrame, year: int) -> None:
         ax.text(min(val + 1, 100), i, f'{val:.0f}%', va='center', fontsize=8)
     save_chart(fig, '03_low_carbon_ranking.png')
 
-    # Figure 4 - compare what correlates with carbon intensity, using two scatters.
+    # Figures 04–05: Spearman associations; visual emphasis on France (same stats as before).
     stats = {}
-    for key, label, out_name in [
-        ('renew','Renewable share','04_renewables_vs_intensity.png'),
-        ('lowcarbon','Low-carbon share (renewables + nuclear)','05_lowcarbon_vs_intensity.png')]:
-        paired = year_data.dropna(subset=[C[key],C['intensity']]).copy()
+    scatter_specs = [
+        ('renew', 'Renewable share', '04_renewables_vs_intensity.png',
+         'France stands out: relatively low renewable share, yet very low carbon intensity.'),
+        ('lowcarbon', 'Low-carbon share (renewables + nuclear)', '05_lowcarbon_vs_intensity.png',
+         'When nuclear is included, France moves into the high low-carbon share region.'),
+    ]
+    point_grey, france_red, ink, mute = '#B0B7BD', '#D43F35', '#2C333A', '#6A737A'
+    for key, label, out_name, narrative in scatter_specs:
+        paired = year_data.dropna(subset=[C[key], C['intensity']]).copy()
         r, p = spearmanr(paired[C[key]], paired[C['intensity']]) if len(paired) >= 5 else (math.nan, math.nan)
-        stats[key] = {'n':int(len(paired)), 'spearman_rho':float(r), 'p_value':float(p)}
-        fig, ax = plt.subplots(figsize=(10.6, 6.3))
-        ax.scatter(paired[C[key]], paired[C['intensity']], s=58,
-                   c=COLORS['lowcarbon'] if key=='lowcarbon' else COLORS['renew'],
-                   alpha=.84, edgecolor='white', linewidth=.7)
-        for _, row in paired.iterrows():
-            if row['iso_code'] in {'FRA','DEU','ITA','ESP','SWE','POL','DNK','CZE'}:
-                ax.annotate(row['iso_code'],(row[C[key]],row[C['intensity']]),
-                            xytext=(5,4),textcoords='offset points',fontsize=8)
-        ax.set(title=f'{label} vs. carbon intensity · {year}',
-               xlabel=f'{label} (%)', ylabel='gCO₂eq / kWh')
-        ax.text(.01,.97, f'Spearman ρ = {r:.2f}  |  p = {p:.3g}  |  n = {len(paired)}',
-                transform=ax.transAxes, va='top', fontsize=10, color='#454c58',
-                bbox=dict(facecolor='white', edgecolor='none', alpha=.9))
-        ax.text(0,-.19,'Cross-sectional association, not a causal effect. Countries are observations.',
-                transform=ax.transAxes, fontsize=9, color='#56606b')
-        save_chart(fig,out_name)
+        stats[key] = {'n': int(len(paired)), 'spearman_rho': float(r), 'p_value': float(p)}
+
+        others = paired.loc[paired['iso_code'] != 'FRA']
+        fra = paired.loc[paired['iso_code'] == 'FRA']
+
+        fig, ax = plt.subplots(figsize=(10.6, 6.4))
+        ax.set_facecolor('white')
+        fig.patch.set_facecolor('white')
+        ax.grid(True, color='#E6E9EC', linewidth=0.8, alpha=1.0, zorder=0)
+        ax.set_axisbelow(True)
+
+        ax.scatter(others[C[key]], others[C['intensity']],
+                   s=64, c=point_grey, alpha=0.95, edgecolors='white', linewidths=0.6,
+                   zorder=3, label='Other EU-27 countries')
+        if len(fra):
+            ax.scatter(fra[C[key]], fra[C['intensity']],
+                       s=110, c=france_red, alpha=1.0, edgecolors='white', linewidths=0.9,
+                       zorder=4, label='France')
+            fx, fy = float(fra.iloc[0][C[key]]), float(fra.iloc[0][C['intensity']])
+            ax.annotate(
+                'France', xy=(fx, fy), xytext=(12, 10), textcoords='offset points',
+                fontsize=11, fontweight='bold', color=france_red,
+                arrowprops=dict(arrowstyle='-', color=france_red, lw=0.9, shrinkA=0, shrinkB=4),
+                zorder=5,
+            )
+
+        ax.set_xlim(-2, 105)
+        ymax = max(650, float(paired[C['intensity']].max()) * 1.08)
+        ax.set_ylim(0, ymax)
+        ax.set_title(f'{label} vs. carbon intensity · {year}', color=ink, pad=12)
+        ax.set_xlabel(f'{label} (%)', color=ink, fontsize=12)
+        ax.set_ylabel('Lifecycle carbon intensity (gCO₂eq / kWh)', color=ink, fontsize=12)
+        ax.tick_params(colors=ink, labelsize=10)
+        for spine in ('left', 'bottom'):
+            ax.spines[spine].set_color('#C5CBD0')
+            ax.spines[spine].set_linewidth(0.9)
+
+        ax.text(
+            0.98, 0.97, f'ρ = {r:.2f}   p = {p:.3g}   n = {len(paired)}',
+            transform=ax.transAxes, ha='right', va='top', fontsize=9.5, color=mute,
+            bbox=dict(boxstyle='round,pad=0.35', facecolor='white', edgecolor='#E6E9EC', linewidth=0.8),
+        )
+        ax.text(0, -0.18, narrative, transform=ax.transAxes, fontsize=10, color=ink)
+        ax.text(
+            0, -0.24,
+            'Spearman association across EU-27 countries · cross-section, not causal. Soft grey = other countries.',
+            transform=ax.transAxes, fontsize=8.5, color=mute,
+        )
+        save_chart(fig, out_name, dpi=220)
 
     # Figure 5 - 100% mix by source, missing excluded, remainder shown explicitly.
     mixes = year_data.dropna(subset=[C['renew'],C['nuclear'],C['fossil']]).copy()
